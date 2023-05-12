@@ -781,7 +781,7 @@ class PDFCanvas {
 }
 
 
-  const html = `
+const html = `
 <div id="pdf-canvas-modal" class="pdf-modal">
   <div class="pdf-modal-content">
     <div class="pdf-modal-header">
@@ -854,6 +854,6 @@ class PDFCanvas {
     <button id="signature-cancel-btn" type="button" class="btn btn-default">Cancel</button>
   </div>
 </div>
-    `
+`
 
     document.body.innerHTML += html;
