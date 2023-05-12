@@ -781,7 +781,6 @@ class PDFCanvas {
 }
 
 
-document.addEventListener("DOMContentLoaded", () => {
   const html = `
 <div id="pdf-canvas-modal" class="pdf-modal">
   <div class="pdf-modal-content">
@@ -856,5 +855,3 @@ document.addEventListener("DOMContentLoaded", () => {
     `
 
     document.body.innerHTML += html;
-
-});
