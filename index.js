@@ -707,6 +707,95 @@ class PDFCanvas {
     });
   }
 
+  addHtml() {
+    const html = `
+<div id="pdf-canvas-modal" class="pdf-modal">
+  <div class="pdf-modal-content">
+    <div class="pdf-modal-header">
+      <div class="modal-header-group">
+        <h3 id="pdf-modal-title">Document Editor</h3>
+      </div>
+      <div class="modal-header-group">
+        <button type="button" class="btn btn-default" id="undo-btn" disabled>Undo</button>
+        <button type="button" class="btn btn-danger" id="delete-btn" disabled>Delete</button>
+      </div>
+    </div>
+    <div class="pdf-modal-body" id="pdf-modal-body">
+      <div class="pdf-canvas-container" id="pdf-canvas-container">
+        <div id="pdf-wrapper">
+          <canvas id="pdf-canvas"></canvas>
+        </div>
+      </div>
+      <!-- Tool Drawer -->
+      <div id="tool-drawer" class="pdf-modal-tools">
+        <h3>Content</h3>
+
+        <div class="pdf-new-fields">
+          <div class="new-field-option" id="text-btn">
+            Text
+          </div>
+          <div class="new-field-option" id="form-variable-btn">
+            Form Variable
+          </div>
+          <div class="new-field-option" id="date-btn">
+            Date
+          </div>
+        </div>
+
+        <h3>Document Signers</h3>
+        <div id="pdf-signers">
+
+        </div>
+        
+        <div id="change-staff-pain" class="tool-pain">
+          <h3>Select a user</h3>
+            <input type="text" class="form-control" id="search-users" placeholder="Search Users">
+            <div id="user-list"></div>
+          <h4>OR
+          <h3>Temporary Signer</h3>
+          <form>
+            <label>First Name</label>
+            <input type="text" class="form-control">
+            <label>Last Name</label>
+            <input type="text" class="form-control">
+            <label>Username</label>
+            <input type="text" class="form-control">
+            <label>Password</label>
+            <input type="password" class="form-control">
+          </form>
+
+          <button id="staff-save-btn" type="button" class="btn btn-default">Save</button>
+          <button id="staff-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+        </div>
+        <div id="form-variable-pain" class="tool-pain">
+          <h3>Select a variable</h3>
+          <div id="form-variable-selection" class="form-variable-selection"></div>
+
+          <button id="close-form-variable-btn" type="button" class="btn btn-default">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div class="pdf-modal-footer">
+      <button id="save-btn" type="button" class="btn btn-default">Save</button>
+      <button id="cancel-btn" type="button" class="btn btn-default">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="signature-pad-modal" id="signature-pad-modal">
+  <div class="signature-pad-content">
+    <div id="signature-canvas-container" class="signature-canvas-container">
+      <canvas id="signature-pad" class="signature-pad" width=400 height=200></canvas>
+    </div>
+    <button id="signature-save-btn" type="button" class="btn btn-default">Save</button>
+    <button id="signature-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+  </div>
+</div>
+    `
+
+    document.body.innerHTML += html;
+  }
+
   async initEvents() {
     // Remove for debugging purposes
     // this.openEditorButton.addEventListener("click", this.openEditorModal.bind(this));
@@ -740,6 +829,7 @@ class PDFCanvas {
   async init(options) {
     this.editMode = options.mode || "creator";
     this.saveCallback = options.save;
+    this.addHtml();
     this.initEvents();
     if (!options.mode || options.mode === "creator") {
       if (options.link && options.json) {
@@ -766,6 +856,7 @@ class PDFCanvas {
   initUpload(options) {
     this.editMode = options.mode;
     this.saveCallback = options.save;
+    this.addHtml();
     this.initEvents();
     if (!options.mode || options.mode === "creator") {
       if (options.file) {
@@ -779,5 +870,3 @@ class PDFCanvas {
     }
   }
 }
-
-console.log("")
