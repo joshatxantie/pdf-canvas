@@ -1,6 +1,6 @@
 class PDFCanvas {
   constructor(container) {
-    this.addHTML();
+    this.addHTML(container);
     this.modal = document.getElementById("pdf-canvas-modal");
     this.pdfModalBody = document.getElementById("pdf-modal-body");
     this.openEditorButton = document.getElementById("open-editor");
@@ -50,7 +50,7 @@ class PDFCanvas {
 
   }
 
-  addHTML() {
+  addHTML(container) {
     const html = `
     <div id="pdf-canvas-modal" class="pdf-modal">
       <div class="pdf-modal-content">
