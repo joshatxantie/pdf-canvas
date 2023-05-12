@@ -827,19 +827,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div id="user-list"></div>
           <h4>OR
           <h3>Temporary Signer</h3>
-          <form>
-            <label>First Name</label>
-            <input type="text" class="form-control">
-            <label>Last Name</label>
-            <input type="text" class="form-control">
-            <label>Username</label>
-            <input type="text" class="form-control">
-            <label>Password</label>
-            <input type="password" class="form-control">
-          </form>
-
-          <button id="staff-save-btn" type="button" class="btn btn-default">Save</button>
-          <button id="staff-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+          <a href="https://rhe.bluestep.net/shared/relate/wizard.jsp?_a=120222___3&_event=create&_ancestorId=1000005___151765&_formClass=myassn.relate.dataentry.RunWizardModuleWebView&_k=1000002&_id2=530011___36606" target="_blank">Create new User</a>
         </div>
         <div id="form-variable-pain" class="tool-pain">
           <h3>Select a variable</h3>
