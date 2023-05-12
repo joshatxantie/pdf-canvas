@@ -707,8 +707,82 @@ class PDFCanvas {
     });
   }
 
-  addHtml() {
-    const html = `
+  async initEvents() {
+    // Remove for debugging purposes
+    // this.openEditorButton.addEventListener("click", this.openEditorModal.bind(this));
+    this.cancelButton.addEventListener(
+      "click",
+      this.closeEditorModal.bind(this)
+    );
+    this.saveButton.addEventListener("click", this.saveEditorModal.bind(this));
+    // this.changeStaffButton.addEventListener("click", this.showChangeStaff.bind(this));
+    this.cancelStaffButton.addEventListener(
+      "click",
+      this.closeStaffPain.bind(this)
+    );
+    this.textButton.addEventListener("click", this.addText.bind(this));
+    this.undoButton.addEventListener("click", this.undoLast.bind(this));
+    this.formVariableButton.addEventListener(
+      "click",
+      this.showFormVariablePain.bind(this)
+    );
+    this.closeFormVariableButton.addEventListener(
+      "click",
+      this.closeFormVariablePain.bind(this)
+    );
+    this.dateButton.addEventListener("click", this.addDate.bind(this));
+    this.deleteButton.addEventListener(
+      "click",
+      this.deleteActiveObject.bind(this)
+    );
+  }
+
+  async init(options) {
+    this.editMode = options.mode || "creator";
+    this.saveCallback = options.save;
+    this.initEvents();
+    if (!options.mode || options.mode === "creator") {
+      if (options.link && options.json) {
+        await this.restoreDocument(options.link, options.json);
+      } else {
+        throw new Error("Please include a link/json when calling init()");
+      }
+      this.createFormVariables(options.fields || []);
+      this.createUserList(options.users || []);
+      this.modalTitle.innerText = options.title || "Document Editor";
+    } else if (options.mode === "signer") {
+      this.toolDrawer.style.display = "none";
+      this.pdfModalBody.style.justifyContent = "center";
+      if (options.link && options.json) {
+        await this.restoreDocument(options.link, options.json);
+      } else {
+        throw new Error("Please include a link/json when calling init()");
+      }
+      this.modalTitle.innerText = options.title || "Sign Document";
+    } else if (options.mode === "admin") {
+    }
+  }
+
+  initUpload(options) {
+    this.editMode = options.mode;
+    this.saveCallback = options.save;
+    this.initEvents();
+    if (!options.mode || options.mode === "creator") {
+      if (options.file) {
+        this.fileUpload(options.file);
+      } else {
+        throw new Error("Please include file when calling initUpload()");
+      }
+      this.createFormVariables(options.fields || []);
+      this.createUserList(options.users || []);
+      this.modalTitle.innerText = options.title || "Document Editor";
+    }
+  }
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const html = `
 <div id="pdf-canvas-modal" class="pdf-modal">
   <div class="pdf-modal-content">
     <div class="pdf-modal-header">
@@ -794,79 +868,5 @@ class PDFCanvas {
     `
 
     document.body.innerHTML += html;
-  }
 
-  async initEvents() {
-    // Remove for debugging purposes
-    // this.openEditorButton.addEventListener("click", this.openEditorModal.bind(this));
-    this.cancelButton.addEventListener(
-      "click",
-      this.closeEditorModal.bind(this)
-    );
-    this.saveButton.addEventListener("click", this.saveEditorModal.bind(this));
-    // this.changeStaffButton.addEventListener("click", this.showChangeStaff.bind(this));
-    this.cancelStaffButton.addEventListener(
-      "click",
-      this.closeStaffPain.bind(this)
-    );
-    this.textButton.addEventListener("click", this.addText.bind(this));
-    this.undoButton.addEventListener("click", this.undoLast.bind(this));
-    this.formVariableButton.addEventListener(
-      "click",
-      this.showFormVariablePain.bind(this)
-    );
-    this.closeFormVariableButton.addEventListener(
-      "click",
-      this.closeFormVariablePain.bind(this)
-    );
-    this.dateButton.addEventListener("click", this.addDate.bind(this));
-    this.deleteButton.addEventListener(
-      "click",
-      this.deleteActiveObject.bind(this)
-    );
-  }
-
-  async init(options) {
-    this.editMode = options.mode || "creator";
-    this.saveCallback = options.save;
-    this.addHtml();
-    this.initEvents();
-    if (!options.mode || options.mode === "creator") {
-      if (options.link && options.json) {
-        await this.restoreDocument(options.link, options.json);
-      } else {
-        throw new Error("Please include a link/json when calling init()");
-      }
-      this.createFormVariables(options.fields || []);
-      this.createUserList(options.users || []);
-      this.modalTitle.innerText = options.title || "Document Editor";
-    } else if (options.mode === "signer") {
-      this.toolDrawer.style.display = "none";
-      this.pdfModalBody.style.justifyContent = "center";
-      if (options.link && options.json) {
-        await this.restoreDocument(options.link, options.json);
-      } else {
-        throw new Error("Please include a link/json when calling init()");
-      }
-      this.modalTitle.innerText = options.title || "Sign Document";
-    } else if (options.mode === "admin") {
-    }
-  }
-
-  initUpload(options) {
-    this.editMode = options.mode;
-    this.saveCallback = options.save;
-    this.addHtml();
-    this.initEvents();
-    if (!options.mode || options.mode === "creator") {
-      if (options.file) {
-        this.fileUpload(options.file);
-      } else {
-        throw new Error("Please include file when calling initUpload()");
-      }
-      this.createFormVariables(options.fields || []);
-      this.createUserList(options.users || []);
-      this.modalTitle.innerText = options.title || "Document Editor";
-    }
-  }
-}
+});
