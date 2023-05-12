@@ -824,9 +824,11 @@ class PDFCanvas {
           <h3>Select a user</h3>
             <input type="text" class="form-control" id="search-users" placeholder="Search Users">
             <div id="user-list"></div>
-          <h4>OR
-          <h3>Temporary Signer</h3>
-          <a href="https://rhe.bluestep.net/shared/relate/wizard.jsp?_a=120222___3&_event=create&_ancestorId=1000005___151765&_formClass=myassn.relate.dataentry.RunWizardModuleWebView&_k=1000002&_id2=530011___36606" target="_blank">Create new User</a>
+          <h4>OR</h4>
+          <a href="/shared/relate/gowizardtemp.jsp?_event=view&_id=530011___36606" target="_blank">Create Temporary User</a>
+          <div>
+            <button id="staff-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+          </div>
         </div>
         <div id="form-variable-pain" class="tool-pain">
           <h3>Select a variable</h3>
