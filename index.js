@@ -135,7 +135,7 @@ class PDFCanvas {
     // Set PDF Modal canvas to show
     this.modal.style.display = "block";
     window.scrollTo(0, 0);
-    document.getElementsByName("html")[0].style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden"
     document.body.style.overflow = "hidden";
 
   }
@@ -143,7 +143,7 @@ class PDFCanvas {
   closeEditorModal() {
     // Set PDF Modal canvas to hidden
     this.modal.style.display = "none";
-    document.getElementsByName("html")[0].style.overflow = "auto";
+    document.documentElement.style.overflow = "hidden"
     document.body.style.overflow = "auto";
   }
 
