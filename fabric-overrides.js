@@ -37,7 +37,6 @@ fabric.SignatureBox = fabric.util.createClass(fabric.Group, {
 
     this.minWidth = 150;
     this.maxWidth = 350
-    // console.log(options)
 
     this.callSuper('initialize', [ rect, text ], options);
 
