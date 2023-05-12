@@ -528,6 +528,8 @@ class PDFCanvas {
       if (!this.editMode === "creator") {
         stateJson.objects.forEach((obj) => (obj["mode"] = "signer"));
       }
+
+      console.log(stateJson)
     }
 
     canvasJSON["objects"].push(...stateJson["objects"]);
