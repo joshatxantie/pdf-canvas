@@ -83,6 +83,14 @@ fabric.SignatureBox = fabric.util.createClass(fabric.Group, {
         })
     }
 
+    this.handleMode()
+
+  },
+
+  handleMode: function() {
+    if (this.mode == "signer") {
+      this.selectable = false;
+    }
   },
 
   tooltip: function() {
@@ -239,15 +247,13 @@ fabric.SignerTextbox = fabric.util.createClass(fabric.Textbox, {
   },
 
   handleMode: function() {
-    console.log(this.mode)
     if (this.mode == "signer") {
       this.controls = {
         ...this.controls,
         ml: new fabric.Control({ visible: false }),
         mr: new fabric.Control({ visible: false }),
-
-      
-    }
+      }
+      this.selectable = false;
     }
   },
   
@@ -353,7 +359,10 @@ fabric.RadioButton = fabric.util.createClass(fabric.Circle, {
       this.controls = {
         ...this.controls,
         br: new fabric.Control({ visible: false }),
-    }
+
+      
+      }
+      this.selectable = false;
     }
   },
 
