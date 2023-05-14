@@ -64,6 +64,10 @@
     overflow-y: scroll;
     margin-right: 5px;
   }
+
+  .pdf-signers {
+    overflow-y: scroll;
+  }
   
   /* TOOLBOX */
   .pdf-modal-tools {
@@ -74,6 +78,8 @@
     min-width: 285px;
     overflow: hidden;
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
   
   .new-field-option {
