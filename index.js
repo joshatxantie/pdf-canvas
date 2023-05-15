@@ -189,7 +189,7 @@ class PDFCanvas {
   formValid() {
     let valid = true
     let topMost = 999999;
-    this.fabricCanvas.getObjects().forEach(obj => {
+    this.fabricCanvas.getObjects().filter(obj => obj.userId === this.signerId).forEach(obj => {
       if (obj.form && obj.form === "invalid") {
         if (obj.top < topMost) topMost = obj.top
         valid = false
@@ -264,9 +264,10 @@ class PDFCanvas {
         this.requiredChb.checked = false;
       } else {
         this.deleteButton.disabled = false;
-        this.requiredChb.disabled = false;
-
-        this.requiredChb.checked = this.fabricCanvas.getActiveObjects().every(obj => obj.required)
+        if (["RadioButton", "SignerTextbox", "SignatureBox"].includes(activeObject.type)){
+          this.requiredChb.disabled = false;
+          this.requiredChb.checked = this.fabricCanvas.getActiveObjects().every(obj => obj.required)
+        }
       }
     } else if (this.editMode === "signer") {
       if (activeObject) {
@@ -344,7 +345,7 @@ class PDFCanvas {
   }
 
   saveFormVariable(variable) {
-    var text = new fabric.SignerTextbox(variable, {
+    var text = new fabric.IText(variable, {
       left: 50,
       top: this.pdfCanvasContainer.scrollTop + 50,
       fontSize: 14,
@@ -352,6 +353,7 @@ class PDFCanvas {
       textBackgroundColor: "yellow",
       edittable: false,
       mode: "editor",
+
     });
 
     this.fabricCanvas.add(text);
