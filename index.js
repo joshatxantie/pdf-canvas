@@ -647,7 +647,7 @@ class PDFCanvas {
       stateJson.objects.forEach((obj) => {
         obj['mode'] = this.editMode
 
-        if (this.editMode === "signer" && obj.userId !== this.signerId) {
+        if (this.editMode === "signer" && obj.userId && this.signerId !== obj.userId) {
           obj['visible'] = false
         } else {
           obj['visible'] = true
@@ -1032,7 +1032,6 @@ class PDFCanvas {
     );
     this.dateButton.addEventListener("click", this.addDate.bind(this));
     
-
   }
 
   async init(options) {
