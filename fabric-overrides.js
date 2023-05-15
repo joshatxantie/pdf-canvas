@@ -1,6 +1,17 @@
 fabric.SignatureBox = fabric.util.createClass(fabric.Group, {
   type: 'SignatureBox',
-  initialize: function(options) {
+  initialize: function(color, options) {
+    // disable textbox to rotate
+    this.hoverCursor = "pointer"
+
+    this.transparentCorners = false;
+    this.cornerSize = 10;
+
+    this.minWidth = 150;
+    this.maxWidth = 350
+    this.color = color;
+    this.form = "invalid"
+
     var rect = new fabric.Rect({
       // fill: `rgba(${color.join(", ")}, 0.3)`,
       originX: 'center',
@@ -9,6 +20,8 @@ fabric.SignatureBox = fabric.util.createClass(fabric.Group, {
       height: 60,
       // stroke: `rgb(${color.join(", ")})`,
       strokeWidth: 2,
+      fill: `rgba(${this.color.join(", ")}, 0.3)`,
+      stroke: `rgb(${this.color.join(", ")})`,
     });
 
     var text = new fabric.Text('Sign Here', {
@@ -17,26 +30,7 @@ fabric.SignatureBox = fabric.util.createClass(fabric.Group, {
       originX: 'center',
       originY: 'center',
       fontFamily: 'Helvetica',
-      // fill: `rgb(${color.join(", ")})`,
     });
-    rect.set({
-      fill: `rgba(${options['inputRectFillRGB'].join(", ")}, 0.3)`,
-      stroke: `rgb(${options['inputRectFillRGB'].join(", ")})`,
-    })
-
-    text.set({
-      fill: `rgb(${options['inputRectFillRGB'].join(", ")})`,
-    })
-
-    // disable textbox to rotate
-    options['hoverCursor'] = "pointer"
-
-    this.transparentCorners = false;
-    this.cornerSize = 10;
-    this.cornerColor = `rgb(${options['inputRectFillRGB'].join(", ")})`;
-
-    this.minWidth = 150;
-    this.maxWidth = 350
 
     this.callSuper('initialize', [ rect, text ], options);
 
@@ -88,7 +82,8 @@ fabric.SignatureBox = fabric.util.createClass(fabric.Group, {
 
   handleMode: function() {
     if (this.mode == "signer") {
-      this.selectable = false;
+      this.lockMovementX = true;
+      this.lockMovementY = true;
     }
   },
 
@@ -117,23 +112,23 @@ fabric.SignatureBox = fabric.util.createClass(fabric.Group, {
     signature.saveCallback = callback
   },
   
-  // render: function(ctx) {
-  //   this.callSuper('render', ctx);
-  //   var strokeWidth = 1;
-  //   var halfStroke = strokeWidth / 2;
-  //   var left = this.left - 5;
-  //   var top = this.top - 5;
-  //   var width = this.width + 5 * 2;
-  //   var height = this.height + 5 * 2;
+  render: function(ctx) {
+    this.callSuper('render', ctx);
+    if (this.visible) {
+      if (this.required) {
+        ctx.fillStyle = "#ff5959"
+        ctx.strokeRect(this.left, this.top, 7, 7)
+        ctx.fillRect(this.left, this.top, 7, 7)
+      }
 
-  //   if (this.inputRectFillRGB) {
-  //     ctx.strokeStyle = `rgb(${this.inputRectFillRGB.join(", ")})`;
-  //     ctx.lineWidth = strokeWidth;
-  //     ctx.fillStyle = `rgb(${this.inputRectFillRGB.join(", ")}, 0.3)`;
-  //     ctx.strokeRect(left, top, width, height);
-  //     ctx.fillRect(left, top, width, height);
-  //   }
-  // }
+      if (this.showError) {
+        this.getObjects()[0].set({
+          stroke: 'red'
+        })
+      }
+    }
+    
+  }
   // override default methods here
 });
 
@@ -198,6 +193,7 @@ fabric.SignerTextbox = fabric.util.createClass(fabric.Textbox, {
     }
 
     this.handleMode()
+
     
   },
   _wrapLine: function(_line, lineIndex, desiredWidth) {
@@ -252,25 +248,45 @@ fabric.SignerTextbox = fabric.util.createClass(fabric.Textbox, {
         ml: new fabric.Control({ visible: false }),
         mr: new fabric.Control({ visible: false }),
       }
-      this.selectable = false;
+      // this.selectable = false;
+      let thisContext = this;
+      if (!this.form || this.form === "invalid") {
+        this.intValue = this.text;
+        this.form = "invalid"
+      }
+      this.on("editing:exited", function() {
+        if (thisContext.form === "invalid" && thisContext.text !== this.intValue) {
+          thisContext.set({
+            form: "valid"
+          })
+        }
+      })
     }
   },
   
   render: function(ctx) {
     this.callSuper('render', ctx);
-    var strokeWidth = 1;
-    var halfStroke = strokeWidth / 2;
-    var left = this.left - 5;
-    var top = this.top - 5;
-    var width = this.width + 5 * 2;
-    var height = this.height + 5 * 2;
+    if (this.visible) {
+      var strokeWidth = 1;  
+      var halfStroke = strokeWidth / 2;
+      var left = this.left - 5;
+      var top = this.top - 5;
+      var width = this.width + 5 * 2;
+      var height = this.height + 5 * 2;
 
-    if (this.inputRectFillRGB) {
-      ctx.strokeStyle = `rgb(${this.inputRectFillRGB.join(", ")})`;
-      ctx.lineWidth = strokeWidth;
-      ctx.fillStyle = `rgb(${this.inputRectFillRGB.join(", ")}, 0.3)`;
-      ctx.strokeRect(left, top, width, height);
-      ctx.fillRect(left, top, width, height);
+      if (this.inputRectFillRGB) {
+        ctx.strokeStyle = this.showError ? "red" : `rgb(${this.inputRectFillRGB.join(", ")})`;
+        ctx.lineWidth = strokeWidth;
+        ctx.fillStyle = `rgb(${this.inputRectFillRGB.join(", ")}, 0.3)`;
+        ctx.strokeRect(left, top, width, height);
+        ctx.fillRect(left, top, width, height);
+      }
+
+      if (this.required) {
+        ctx.fillStyle = "#ff5959"
+        ctx.strokeRect(left, top, 7, 7)
+        ctx.fillRect(left, top, 7, 7)
+      }
     }
   }
   // override default methods here
@@ -280,11 +296,11 @@ fabric.RadioButton = fabric.util.createClass(fabric.Circle, {
   type: 'RadioButton',
   initialize: function( options ) {
     options['radius'] = 10
-    options['fill'] = 'white'
+    options['fill'] = options['fill'] || 'white'
     options['stroke'] = 'black'
     options['strokeWidth'] = 1
-    options['fill'] = 'white'
     options['hoverCursor'] = "pointer"
+    options['form'] = options['form'] || "invalid"
 
     this.transparentCorners = false;
     this.cornerSize = 10;
@@ -358,8 +374,6 @@ fabric.RadioButton = fabric.util.createClass(fabric.Circle, {
       this.controls = {
         ...this.controls,
         br: new fabric.Control({ visible: false }),
-
-      
       }
       this.selectable = false;
     }
@@ -367,26 +381,38 @@ fabric.RadioButton = fabric.util.createClass(fabric.Circle, {
 
   render: function(ctx) {
     this.callSuper('render', ctx);
-    var strokeWidth = 1;
-    var left = this.left - 5;
-    var top = this.top - 5;
-    var width = (this.width * this.scaleX) + 5 * 2;
-    var height = (this.height * this.scaleY) + 5 * 2;
+    if (this.visible) {
+      var strokeWidth = 1;
+      var left = this.left - 5;
+      var top = this.top - 5;
+      var width = (this.width * this.scaleX) + 5 * 2;
+      var height = (this.height * this.scaleY) + 5 * 2;
 
-    if (this.inputRectFillRGB) {
-      ctx.strokeStyle = `rgb(${this.inputRectFillRGB.join(", ")})`;
-      ctx.lineWidth = strokeWidth;
-      ctx.fillStyle = `rgb(${this.inputRectFillRGB.join(", ")}, 0.3)`;
-      ctx.strokeRect(left, top, width, height);
-      ctx.fillRect(left, top, width, height);
+      if (this.inputRectFillRGB) {
+        ctx.strokeStyle = this.showError ? "red" : `rgb(${this.inputRectFillRGB.join(", ")})`;
+        ctx.lineWidth = strokeWidth;
+        ctx.fillStyle = `rgb(${this.inputRectFillRGB.join(", ")}, 0.3)`;
+        ctx.strokeRect(left, top, width, height);
+        ctx.fillRect(left, top, width, height);
+      }
+
+      if (this.required) {
+        ctx.fillStyle = "#ff5959"
+        ctx.strokeRect(left, top, 7, 7)
+        ctx.fillRect(left, top, 7, 7)
+      }
     }
+    
   }
 });
 
+fabric.RadioButton.fromObject = function(object, callback) {
+  return fabric.Object._fromObject('RadioButton', object, callback);
+}
 
 // standard options type:
 fabric.SignatureBox.fromObject = function(object, callback) {
-  return fabric.Object._fromObject('SignatureBox', object, callback);
+  return fabric.Object._fromObject('SignatureBox', object, callback, 'color');
 }
 
 // standard options type:
@@ -394,6 +420,3 @@ fabric.SignerTextbox.fromObject = function(object, callback) {
   return fabric.Object._fromObject('SignerTextbox', object, callback, 'text');
 }
 
-fabric.RadioButton.fromObject = function(object, callback) {
-  return fabric.Object._fromObject('RadioButton', object, callback);
-}

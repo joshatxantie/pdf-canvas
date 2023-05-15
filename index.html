@@ -5,22 +5,57 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+    
+    <div id="pdf"></div>
+
+    <textarea id="json" data-fid="documentJSON" cols="30" rows="10"></textarea>
+
+    
+    <button id="open">Open</button>
+    <button id="load">Load</button>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js" integrity="sha512-a9NgEEK7tsCvABL7KqtUTQjl69z7091EVPpw5KxPlZ93T141ffe1woLtbXTX+r2/8TtTvRX/v4zTL2UlMUPgwg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
     <script src="https://unpkg.com/fabric@latest/dist/fabric.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/joshatxantie/pdf-canvas@v1.0.1/signature.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/joshatxantie/pdf-canvas@v1.0.1/fabric-overrides.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/joshatxantie/pdf-canvas@v1.0.1/index.js"></script>
+    <script src="./signature.js"></script>
+    <script src="./fabric-overrides.js"></script>
+    <script src="./index.js"></script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function(event) {
-            var pdfCanvas = new PDFCanvas();
+        var pdfCanvas = new PDFCanvas("pdf");
+
+        document.getElementById("open").addEventListener("click", function() {
+            pdfCanvas.openEditorModal()
+        });
+
+        document.getElementById("load").addEventListener("click", function() {
+            pdfCanvas.reset();
             pdfCanvas.init({
                 mode: "creator",
                 link: "./pdf.pdf",
+                json: document.getElementById("json").value,
+                save: function(json) {
+                    document.getElementById("json").value = json;
+                    pdfCanvas.closeEditorModal();
+                }
+            }).then(() => {
+                pdfCanvas.openEditorModal()
+            })
+        });
+        document.addEventListener("DOMContentLoaded", function(event) {
+            pdfCanvas.init({
+                mode: "creator",
+                link: "./pdf.pdf",
+                json: '{"objects": []}',
+                save: function(json) {
+                    json = JSON.parse(json);
+                    json = JSON.stringify(json, null, 4);
+                    document.getElementById("json").value = json;
+                    pdfCanvas.closeEditorModal();
+                }
             }).then(() => {
                 pdfCanvas.openEditorModal()
             })

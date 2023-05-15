@@ -4,8 +4,6 @@ class PDFCanvas {
     this.modal = document.getElementById("pdf-canvas-modal");
     this.pdfModalBody = document.getElementById("pdf-modal-body");
     this.openEditorButton = document.getElementById("open-editor");
-    this.cancelButton = document.getElementById("cancel-btn");
-    this.saveButton = document.getElementById("save-btn");
     this.pdfFileInput = document.querySelector("[data-fid=pdfFile]");
     this.canvas = document.getElementById("pdf-canvas");
     this.changeStaffPain = document.getElementById("change-staff-pain");
@@ -13,13 +11,22 @@ class PDFCanvas {
     this.changeStaffButton = document.getElementById("change-staff-btn");
     this.cancelStaffButton = document.getElementById("staff-cancel-btn");
     this.formVariableButton = document.getElementById("form-variable-btn");
+    this.pdfWrapper = document.getElementById("pdf-wrapper")
+    
     this.closeFormVariableButton = document.getElementById(
       "close-form-variable-btn"
     );
     this.textButton = document.getElementById("text-btn");
     this.pdfCanvasContainer = document.getElementById("pdf-canvas-container");
-    this.undoButton = document.getElementById("undo-btn");
-    this.deleteButton = document.getElementById("delete-btn");
+    this.undoButton = null;
+    this.deleteButton = null;
+    this.requiredChb = null;
+    this.denyButton = null;
+    this.cancelButton = null;
+    this.saveButton = null;
+    this.saveCallback = null;
+    this.denyCallback = null;
+    this.signerId = null;
     this.modalTitle = document.getElementById("pdf-modal-title");
     this.toolDrawer = document.getElementById("tool-drawer");
     this.editMode = "creator";
@@ -30,6 +37,11 @@ class PDFCanvas {
       [122, 249, 171],
       [255, 113, 36],
       [255, 4, 142],
+      [138, 234, 146],
+      [66, 226, 184],
+      [235, 138, 144],
+      [234, 214, 55],
+      
     ];
     this.signers = [
       {
@@ -43,11 +55,12 @@ class PDFCanvas {
     this.objectsAdded = [];
     this.staticObjects = 0;
     this.variableObjects = 0;
-    this.fabricCanvas = new fabric.Canvas();
+    this.radioButtonGroups = 0;
+    this.fabricCanvas = null;
     // this.currentPage = 1;
     this.state = [];
-
-
+    this.clipboard = null;
+    this.saveOptions = ["selectable", "inputRectFillRGB", "tooltipName", "id", "userId", "edittable", "color", "mode", "fill", "radioButtonGroup", "required", "form"]
   }
 
   addHTML(container) {
@@ -58,10 +71,7 @@ class PDFCanvas {
           <div class="modal-header-group">
             <h3 id="pdf-modal-title">Document Editor</h3>
           </div>
-          <div class="modal-header-group">
-            <button type="button" class="btn btn-default" id="undo-btn" disabled>Undo</button>
-            <button type="button" class="btn btn-danger" id="delete-btn" disabled>Delete</button>
-          </div>
+          <div class="modal-header-group" id="editor-btns"></div>
         </div>
         <div class="pdf-modal-body" id="pdf-modal-body">
           <div class="pdf-canvas-container" id="pdf-canvas-container">
@@ -108,8 +118,7 @@ class PDFCanvas {
             </div>
           </div>
         </div>
-        <div class="pdf-modal-footer">
-          <button id="save-btn" type="button" class="btn btn-default">Save</button>
+        <div class="pdf-modal-footer" id="save-action-btns">
           <button id="cancel-btn" type="button" class="btn btn-default">Cancel</button>
         </div>
       </div>
@@ -143,20 +152,28 @@ class PDFCanvas {
   closeEditorModal() {
     // Set PDF Modal canvas to hidden
     this.modal.style.display = "none";
-    document.documentElement.style.overflow = "hidden"
+    document.documentElement.style.overflow = "auto"
     document.body.style.overflow = "auto";
   }
 
-  saveEditorModal() {
+  saveDocument() {
+    // validate fields
+    if (this.editMode === "signer" && !this.formValid()) {
+      if (!document.getElementById("pdf-validation-error")) {
+        const saveActionButtons = document.getElementById("save-action-btns") 
+        let errorMessage = document.createElement("label")
+        errorMessage.id = "pdf-validation-error"
+        errorMessage.innerText = "Please fill out all required fields."
+        errorMessage.classList.add("text-danger")
+        errorMessage.style.paddingRight = "5px"
+        
+        saveActionButtons.prepend(errorMessage)
+      }
+      
+      return;
+    }
     // Save State of canvas
-    this.state = this.fabricCanvas.toJSON([
-      "selectable",
-      "inputRectFillRGB",
-      "tooltipName",
-      "id",
-      "userId",
-      "edittable",
-    ]);
+    this.state = this.fabricCanvas.toJSON(this.saveOptions);
 
     this.state["objects"] = this.state.objects.filter((o) =>
       o.id && o.id.includes("pdf-page") ? false : true
@@ -166,6 +183,37 @@ class PDFCanvas {
 
     if (this.saveCallback) {
       this.saveCallback(JSON.stringify(this.state));
+    }
+  }
+
+  formValid() {
+    let valid = true
+    let topMost = 999999;
+    this.fabricCanvas.getObjects().forEach(obj => {
+      if (obj.form && obj.form === "invalid") {
+        if (obj.top < topMost) topMost = obj.top
+        valid = false
+        obj.set({
+          showError: true
+        })
+      } else {
+        obj.set({
+          showError: false
+        })
+      }
+    })
+    this.fabricCanvas.renderAll()
+
+    if (!valid) {
+      document.getElementById("pdf-canvas-container").scrollTo(0, topMost - 10)
+    }
+    return valid;
+  }
+
+  denyDocument() {
+    if (this.denyCallback) {
+      let response = prompt("What is the reason for denying this form?")
+      this.denyCallback(response)
     }
   }
 
@@ -190,7 +238,7 @@ class PDFCanvas {
       .getObjects()
       .filter((ob) => (ob.id && ob.id.includes("pdf-page") ? false : true));
 
-    if (nonPageObjects.length) {
+    if (nonPageObjects.length && this.undoButton) {
       this.undoButton.disabled = false;
     }
   }
@@ -200,7 +248,7 @@ class PDFCanvas {
       .getObjects()
       .filter((ob) => (ob.id && ob.id.includes("pdf-page") ? false : true));
 
-    if (!nonPageObjects.length) {
+    if (!nonPageObjects.length && this.undoButton) {
       this.undoButton.disabled = true;
     }
   }
@@ -212,10 +260,15 @@ class PDFCanvas {
     if (this.editMode === "creator") {
       if (!activeObject) {
         this.deleteButton.disabled = true;
+        this.requiredChb.disabled = true;
+        this.requiredChb.checked = false;
       } else {
         this.deleteButton.disabled = false;
+        this.requiredChb.disabled = false;
+
+        this.requiredChb.checked = this.fabricCanvas.getActiveObjects().every(obj => obj.required)
       }
-    } else {
+    } else if (this.editMode === "signer") {
       if (activeObject) {
         if (activeObject.type === "SignerTextbox") {
           activeObject.enterEditing();
@@ -234,6 +287,52 @@ class PDFCanvas {
         }
       }
     }
+  }
+
+  requiredChange(e) {
+    let activeObjects = this.fabricCanvas.getActiveObjects();
+
+    if (activeObjects) {
+      activeObjects.forEach(obj =>{
+        obj.set({required: e.target.checked})
+      })
+
+      this.fabricCanvas.renderAll();
+    }
+  }
+
+  copy() {
+    let thisContext = this;
+    this.fabricCanvas.getActiveObject().clone(function(cloned) {
+      thisContext.clipboard = cloned;
+    }, this.saveOptions);
+  }
+
+  paste() {
+    let thisContext = this;
+    this.clipboard.clone(function(clonedObj) {
+      thisContext.fabricCanvas.discardActiveObject();
+      clonedObj.set({
+        left: clonedObj.left + 10,
+        top: clonedObj.top + 10,
+        evented: true,
+      });
+      if (clonedObj.type === 'activeSelection') {
+        // active selection needs a reference to the canvas.
+        clonedObj.canvas = thisContext.fabricCanvas;
+        clonedObj.forEachObject(function(obj) {
+          thisContext.fabricCanvas.add(obj);
+        });
+        // this should solve the unselectability
+        clonedObj.setCoords();
+      } else {
+        thisContext.fabricCanvas.add(clonedObj);
+      }
+      thisContext.clipboard.top += 10;
+      thisContext.clipboard.left += 10;
+      thisContext.fabricCanvas.setActiveObject(clonedObj);
+      thisContext.fabricCanvas.requestRenderAll();
+    }, this.saveOptions);
   }
 
   deleteActiveObject() {
@@ -290,7 +389,11 @@ class PDFCanvas {
   }
 
   addSignature({ name, id, color }) {
-    var signBox = new fabric.SignatureBox({
+    if (!Array.isArray(color) || color.length !== 3) {
+      throw new Error("Color must be an rgb")
+    }
+      
+    var signBox = new fabric.SignatureBox(color, {
       left: 50,
       top: this.pdfCanvasContainer.scrollTop + 50,
       fontSize: 16,
@@ -299,8 +402,8 @@ class PDFCanvas {
       tooltipName: name,
       userId: id,
       mode: "editor",
+      cornerColor: `rgb(${color.join(", ")})`
     });
-
     this.fabricCanvas.add(signBox);
     this.fabricCanvas.setActiveObject(signBox);
   }
@@ -309,6 +412,8 @@ class PDFCanvas {
     let thisContext = this;
 
     let buttons = [];
+    this.radioButtonGroups += 1;
+    let radioGroupId = this.radioButtonGroups;
 
     for (let i = 0; i < count; i++) {
       let button = new fabric.RadioButton({
@@ -318,28 +423,44 @@ class PDFCanvas {
         tooltipName: name,
         inputRectFillRGB: color,
         mode: "editor",
+        radioButtonGroup: radioGroupId,
+        color: color
       });
+
+      this.radioButtonEvent(button);
 
       buttons.push(button);
       this.fabricCanvas.add(button);
     }
 
-    buttons.forEach((b, idx) => {
-      b.on("mouseup", function () {
-        if (b.fill !== "white") {
-          b.set({
-            fill: "white",
-          });
-        } else {
-          b.set({
-            fill: `rgb(${color.join(",")})`,
-          });
-        }
 
-        buttons.forEach((b, indx) => indx !== idx && b.set({ fill: "white" }));
+  }
 
-        thisContext.fabricCanvas.renderAll();
-      });
+  radioButtonEvent(button) {
+    let thisContext = this;
+
+    button.on("mouseup", function () {
+      let groupButtons = thisContext.fabricCanvas.getObjects().filter(obj => obj !== button && obj.radioButtonGroup === button['radioButtonGroup']);
+
+      groupButtons.forEach((b) => b.set({ fill: "white" }));
+
+      if (button.fill !== "white") {
+        groupButtons.forEach((b) => b.set({form: 'invalid'}))
+
+        button.set({
+          fill: "white",
+          form: 'invalid'
+        });
+      } else {
+        groupButtons.forEach((b) => b.set({form: 'valid'}))
+
+        button.set({
+          fill: `rgb(${button.color.join(",")})`,
+          form: 'valid'
+        });
+      }
+
+      thisContext.fabricCanvas.renderAll();
     });
   }
 
@@ -387,6 +508,8 @@ class PDFCanvas {
       const imgData = this.canvas.toDataURL("image/png");
 
       const pdfPageImage = await this.loadImage(imgData);
+
+      
       this.fabricCanvas.add(pdfPageImage);
       this.fabricCanvas.renderAll();
 
@@ -399,6 +522,10 @@ class PDFCanvas {
     const pages = [];
     let width = 0,
       height = 0;
+    
+
+    let ctx = this.canvas.getContext('2d');
+
     for (let i = 1; i <= pdf.numPages; i++) {
       let page = await pdf.getPage(i);
       let viewport = page.getViewport({ scale: 1.5 });
@@ -417,6 +544,7 @@ class PDFCanvas {
     this.fabricCanvas = new fabric.Canvas(this.canvas, {
       width: width,
       height: height,
+      hoverCursor: 'default'
     });
 
     this.fabricCanvas.on("selection:created", this.objectSelected.bind(this));
@@ -424,8 +552,6 @@ class PDFCanvas {
     this.fabricCanvas.on("selection:updated", this.objectSelected.bind(this));
     this.fabricCanvas.on("object:added", this.objectAdded.bind(this));
     this.fabricCanvas.on("object:removed", this.objectRemoved.bind(this));
-
-    const ctx = this.canvas.getContext("2d");
 
     const renderContext = {
       canvasContext: ctx,
@@ -443,7 +569,7 @@ class PDFCanvas {
         height: pages[j].viewport.height,
         top: j * pages[j].viewport.height + j * 20,
         selectable: false,
-        id: "pdf-page-" + j,
+        id: "pdf-page-" + j
       });
 
       this.fabricCanvas.add(pdfPageImage);
@@ -451,6 +577,7 @@ class PDFCanvas {
       this.fabricCanvas.renderAll();
     }
   }
+  
 
   loadImage(url) {
     return new Promise((resolve, reject) => {
@@ -507,29 +634,30 @@ class PDFCanvas {
     let thisContext = this;
     // request the PDF document using fetch
     let pdf = await pdfjsLib.getDocument(link).promise;
-    thisContext.pdfDocument = pdf;
+    this.pdfDocument = pdf;
 
-    await thisContext.loadAllPdfState(pdf);
+    await this.loadAllPdfState(pdf);
 
-    let canvasJSON = this.fabricCanvas.toJSON([
-      "selectable",
-      "inputRectFillRGB",
-      "tooltipName",
-      "id",
-      "userId",
-      "edittable",
-    ]);
+    let canvasJSON = this.fabricCanvas.toJSON(this.saveOptions);
 
     let stateJson = JSON.parse(json);
 
     if (stateJson.objects.length) {
-      this.undoButton.disabled = false;
+      if (this.undoButton) this.undoButton.disabled = false;
+      stateJson.objects.forEach((obj) => {
+        obj['mode'] = this.editMode
 
-      if (!this.editMode === "creator") {
-        stateJson.objects.forEach((obj) => (obj["mode"] = "signer"));
-      }
+        if (this.editMode === "signer" && obj.userId !== this.signerId) {
+          obj['visible'] = false
+        } else {
+          obj['visible'] = true
+        }
+        
+        if (obj['radioButtonGroup'] && obj['radioButtonGroup'] > this.radioButtonGroups) {
+          this.radioButtonGroups = obj['radioButtonGroup']
+        }
+      });
 
-      console.log(stateJson)
     }
 
     canvasJSON["objects"].push(...stateJson["objects"]);
@@ -542,8 +670,13 @@ class PDFCanvas {
     let loadDocumentState = new Promise((res, rej) => {
       thisContext.fabricCanvas.loadFromJSON(canvasJSON, () => {
         thisContext.fabricCanvas.renderAll();
+        console.log("rendered")
 
-        res();
+        thisContext.fabricCanvas.getObjects().filter(obj => obj['radioButtonGroup'] !== undefined).forEach(rb => {
+          thisContext.radioButtonEvent(rb)
+        })
+
+        res()
       });
     });
 
@@ -651,7 +784,7 @@ class PDFCanvas {
         fieldContainer.addEventListener("click", function () {
           thisContext.saveFormVariable(`[${obj.id}]`);
         });
-        fieldContainer.classList.add("form-variable-item");
+        fieldContainer.classList.add("user-item");
         fieldContainer.innerHTML = `
   <span>${obj.fieldName}: </span><span class="form-item-variable-id">${obj.id}</span>
           `;
@@ -797,21 +930,98 @@ class PDFCanvas {
     });
   }
 
+  addActionButtons(mode) {
+    const editorButtonContainer = document.getElementById("editor-btns");
+    const saveActionButtons = document.getElementById("save-action-btns")
+    if (mode == "creator") {
+      editorButtonContainer.innerHTML = `
+        <label>Required</label>
+        <input type="checkbox" id="required-chb" disabled>
+        <button type="button" class="btn btn-default" id="undo-btn" disabled>Undo</button>
+        <button type="button" class="btn btn-danger" id="delete-btn" disabled>Delete</button>
+      `
+      saveActionButtons.innerHTML = `
+        <button id="save-btn" type="button" class="btn btn-default">Save</button>
+        ${saveActionButtons.innerHTML}
+      `
+      this.undoButton = document.getElementById("undo-btn");
+      this.deleteButton = document.getElementById("delete-btn");
+      this.requiredChb = document.getElementById("required-chb");
+
+      this.saveButton = document.getElementById("save-btn");
+      this.cancelButton = document.getElementById("cancel-btn");
+
+      this.deleteButton.addEventListener("click", this.deleteActiveObject.bind(this));
+      this.undoButton.addEventListener("click", this.undoLast.bind(this));
+      this.requiredChb.addEventListener("change", this.requiredChange.bind(this))
+      this.saveButton.addEventListener("click", this.saveDocument.bind(this));
+      this.cancelButton.addEventListener("click", this.closeEditorModal.bind(this));
+    }
+    if (mode == "signer") {
+      saveActionButtons.innerHTML = `
+        <button id="save-btn" type="button" class="btn btn-default">Save</button>
+        ${saveActionButtons.innerHTML}
+      `
+      this.saveButton = document.getElementById("save-btn");
+      this.cancelButton = document.getElementById("cancel-btn");
+
+      this.saveButton.addEventListener("click", this.saveDocument.bind(this));
+      this.cancelButton.addEventListener("click", this.closeEditorModal.bind(this));
+    }
+    if (mode == "reviewer") {
+      saveActionButtons.innerHTML = `
+        <button id="save-btn" type="button" class="btn btn-success">Approve</button>
+        <button id="deny-btn" type="button" class="btn btn-danger">Deny</button>
+        ${saveActionButtons.innerHTML}
+      `
+      this.saveButton = document.getElementById("save-btn");
+      this.denyButton = document.getElementById("deny-btn");
+      this.cancelButton = document.getElementById("cancel-btn");
+
+      this.saveButton.addEventListener("click", this.saveDocument.bind(this));
+      this.denyButton.addEventListener("click", this.denyDocument.bind(this));
+      this.cancelButton.addEventListener("click", this.closeEditorModal.bind(this));
+    }
+  }
+
+  reset() {
+    if (this.fabricCanvas) this.fabricCanvas.clear()
+    this.pdfCanvasContainer.scrollTo(0,0)
+    this.pdfWrapper.innerHTML = `<canvas id="pdf-canvas"></canvas>`
+    this.canvas = document.getElementById("pdf-canvas")
+    this.documentJSON = null;
+    // this.signerColors = [
+    //   [1, 101, 252],
+    //   [122, 249, 171],
+    //   [255, 113, 36],
+    //   [255, 4, 142],
+    // ];
+    // this.signers = [
+    //   {
+    //     name: "Document Signer",
+    //     id: "document-signer",
+    //     color: [150, 100, 255],
+    //   },
+    // ];
+    this.objectsAdded = [];
+    this.staticObjects = 0;
+    this.variableObjects = 0;
+    this.fabricCanvas = null;
+    this.state = [];
+  }
+
   async initEvents() {
     // Remove for debugging purposes
     // this.openEditorButton.addEventListener("click", this.openEditorModal.bind(this));
-    this.cancelButton.addEventListener(
-      "click",
-      this.closeEditorModal.bind(this)
-    );
-    this.saveButton.addEventListener("click", this.saveEditorModal.bind(this));
+    
+    
     // this.changeStaffButton.addEventListener("click", this.showChangeStaff.bind(this));
     this.cancelStaffButton.addEventListener(
       "click",
       this.closeStaffPain.bind(this)
     );
     this.textButton.addEventListener("click", this.addText.bind(this));
-    this.undoButton.addEventListener("click", this.undoLast.bind(this));
+    
     this.formVariableButton.addEventListener(
       "click",
       this.showFormVariablePain.bind(this)
@@ -821,15 +1031,15 @@ class PDFCanvas {
       this.closeFormVariablePain.bind(this)
     );
     this.dateButton.addEventListener("click", this.addDate.bind(this));
-    this.deleteButton.addEventListener(
-      "click",
-      this.deleteActiveObject.bind(this)
-    );
+    
+
   }
 
   async init(options) {
     this.editMode = options.mode || "creator";
+    this.addActionButtons(this.editMode)
     this.saveCallback = options.save;
+    this.denyCallback = options.deny;
     this.initEvents();
     if (!options.mode || options.mode === "creator") {
       if (options.link && options.json) {
@@ -841,6 +1051,11 @@ class PDFCanvas {
       this.createUserList(options.users || []);
       this.modalTitle.innerText = options.title || "Document Editor";
     } else if (options.mode === "signer") {
+      if (!options.signerId) {
+        throw new Error("Please include signerId which is the logged in user's user id.");
+      } else {
+        this.signerId = options.signerId
+      }
       this.toolDrawer.style.display = "none";
       this.pdfModalBody.style.justifyContent = "center";
       if (options.link && options.json) {
@@ -849,12 +1064,21 @@ class PDFCanvas {
         throw new Error("Please include a link/json when calling init()");
       }
       this.modalTitle.innerText = options.title || "Sign Document";
-    } else if (options.mode === "admin") {
+    } else if (options.mode === "reviewer") {
+      this.toolDrawer.style.display = "none";
+      this.pdfModalBody.style.justifyContent = "center";
+      if (options.link && options.json) {
+        await this.restoreDocument(options.link, options.json);
+      } else {
+        throw new Error("Please include a link/json when calling init()");
+      }
+      this.modalTitle.innerText = options.title || "Review Document";
     }
   }
 
   initUpload(options) {
     this.editMode = options.mode;
+    this.addActionButtons(this.editMode)
     this.saveCallback = options.save;
     this.initEvents();
     if (!options.mode || options.mode === "creator") {
