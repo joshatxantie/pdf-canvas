@@ -119,7 +119,7 @@ class PDFCanvas {
           </div>
         </div>
         <div class="pdf-modal-footer" id="save-action-btns">
-          <button id="cancel-btn" type="button" class="btn btn-default">Cancel</button>
+          
         </div>
       </div>
     </div>
@@ -172,6 +172,8 @@ class PDFCanvas {
       
       return;
     }
+
+    if (document.getElementById("pdf-validation-error")) document.getElementById("pdf-validation-error").remove()
     // Save State of canvas
     this.state = this.fabricCanvas.toJSON(this.saveOptions);
 
@@ -190,7 +192,7 @@ class PDFCanvas {
     let valid = true
     let topMost = 999999;
     this.fabricCanvas.getObjects().filter(obj => obj.userId === this.signerId).forEach(obj => {
-      if (obj.form && obj.form === "invalid") {
+      if (obj.form && obj.form === "invalid" && obj.required) {
         if (obj.top < topMost) topMost = obj.top
         valid = false
         obj.set({
@@ -944,7 +946,7 @@ class PDFCanvas {
       `
       saveActionButtons.innerHTML = `
         <button id="save-btn" type="button" class="btn btn-default">Save</button>
-        ${saveActionButtons.innerHTML}
+        <button id="cancel-btn" type="button" class="btn btn-default">Cancel</button>
       `
       this.undoButton = document.getElementById("undo-btn");
       this.deleteButton = document.getElementById("delete-btn");
@@ -962,7 +964,7 @@ class PDFCanvas {
     if (mode == "signer") {
       saveActionButtons.innerHTML = `
         <button id="save-btn" type="button" class="btn btn-default">Save</button>
-        ${saveActionButtons.innerHTML}
+        <button id="cancel-btn" type="button" class="btn btn-default">Cancel</button>
       `
       this.saveButton = document.getElementById("save-btn");
       this.cancelButton = document.getElementById("cancel-btn");
@@ -974,7 +976,7 @@ class PDFCanvas {
       saveActionButtons.innerHTML = `
         <button id="save-btn" type="button" class="btn btn-success">Approve</button>
         <button id="deny-btn" type="button" class="btn btn-danger">Deny</button>
-        ${saveActionButtons.innerHTML}
+        <button id="cancel-btn" type="button" class="btn btn-default">Cancel</button>
       `
       this.saveButton = document.getElementById("save-btn");
       this.denyButton = document.getElementById("deny-btn");
